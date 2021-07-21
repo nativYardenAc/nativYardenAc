@@ -1,0 +1,308 @@
+function yr_DeepNetworksProject_createSamples()
+
+%%% all data routes
+
+%%%%for small stimuli only%%%
+session_names={'gandalf_100718a',...
+    'gandalf_100718b',...
+    'gandalf_240718a',...
+    'gandalf_240718b',...
+    'gandalf_240718c',...
+    'gandalf_270618b',...
+    'gandalf_290518a'};
+
+cortexFileRoots={'D:\Yarden\yarden matlab files\raw_data\gandalf left\2018July10\Cortex\gan_2018July10_a.1',...
+    'D:\Yarden\yarden matlab files\raw_data\gandalf left\2018July10\Cortex\gan_2018July10_b.1',...
+    'D:\Yarden\yarden matlab files\raw_data\gandalf left\2018July24\gan_2018July24_a.1',...
+    'D:\Yarden\yarden matlab files\raw_data\gandalf left\2018July24\gan_2018July24_b.1',...
+    'D:\Yarden\yarden matlab files\raw_data\gandalf left\2018July24\gan_2018July24_c.1',...
+    'D:\Yarden\yarden matlab files\raw_data\gandalf left\2018June27\gan_2018June27_b.1',...
+    'D:\Yarden\yarden matlab files\raw_data\gandalf left\2018May29\gan_2018_05_29_a.1'};
+
+calibrationFileRoots={'D:\Yarden\yarden matlab files\raw_data\gandalf left\2018July10\Cortex\gan_2018July10_caleye.1',...
+    'D:\Yarden\yarden matlab files\raw_data\gandalf left\2018July10\Cortex\gan_2018July10_caleye.1',...
+    'D:\Yarden\yarden matlab files\raw_data\gandalf left\2018July24\gan_2018July24_cal.1',...
+    'D:\Yarden\yarden matlab files\raw_data\gandalf left\2018July24\gan_2018July24_cal.1',...
+    'D:\Yarden\yarden matlab files\raw_data\gandalf left\2018July24\gan_2018July24_cal.1',...
+    'D:\Yarden\yarden matlab files\raw_data\gandalf left\2018June27\gan_2018June27_caleye.1',...
+    'D:\Yarden\yarden matlab files\raw_data\gandalf left\2018May29\gan_2018_05_29_cal.1'};
+
+condNums={[1,2],[1,2],[1,2],[1,2],[1,2],[1,2],[1,4]};
+
+% % % session_names={'gandalf_100718a',...
+% % %     'gandalf_100718b',...
+% % %     'gandalf_240718a',...
+% % %     'gandalf_240718b',...
+% % %     'gandalf_240718c',...
+% % %     'gandalf_270618b',...
+% % %     'gandalf_290518a',...
+% % %     'gandalf_130618c',...
+% % %     'gandalf_130618d',...
+% % %     'gandalf_230518b',...
+% % %     'gandalf_230518d'};
+% % % 
+% % % cortexFileRoots={'D:\Yarden\yarden matlab files\raw_data\gandalf left\2018July10\Cortex\gan_2018July10_a.1',...
+% % %     'D:\Yarden\yarden matlab files\raw_data\gandalf left\2018July10\Cortex\gan_2018July10_b.1',...
+% % %     'D:\Yarden\yarden matlab files\raw_data\gandalf left\2018July24\gan_2018July24_a.1',...
+% % %     'D:\Yarden\yarden matlab files\raw_data\gandalf left\2018July24\gan_2018July24_b.1',...
+% % %     'D:\Yarden\yarden matlab files\raw_data\gandalf left\2018July24\gan_2018July24_c.1',...
+% % %     'D:\Yarden\yarden matlab files\raw_data\gandalf left\2018June27\gan_2018June27_b.1',...
+% % %     'D:\Yarden\yarden matlab files\raw_data\gandalf left\2018May29\gan_2018_05_29_a.1',...
+% % %     'D:\Yarden\yarden matlab files\raw_data\gandalf left\2018June13\gan_2018June13_ConCurve_w_c.1',...
+% % %     'D:\Yarden\yarden matlab files\raw_data\gandalf left\2018June13\gan_2018June13_ConCurve_b_d.1',...
+% % %     'D:\Yarden\yarden matlab files\raw_data\gandalf left\2018May23\23May2018_Gan_b.1',...
+% % %     'D:\Yarden\yarden matlab files\raw_data\gandalf left\2018May23\23May2018_Gan_d.1'};
+% % % 
+% % % calibrationFileRoots={'D:\Yarden\yarden matlab files\raw_data\gandalf left\2018July10\Cortex\gan_2018July10_caleye.1',...
+% % %     'D:\Yarden\yarden matlab files\raw_data\gandalf left\2018July10\Cortex\gan_2018July10_caleye.1',...
+% % %     'D:\Yarden\yarden matlab files\raw_data\gandalf left\2018July24\gan_2018July24_cal.1',...
+% % %     'D:\Yarden\yarden matlab files\raw_data\gandalf left\2018July24\gan_2018July24_cal.1',...
+% % %     'D:\Yarden\yarden matlab files\raw_data\gandalf left\2018July24\gan_2018July24_cal.1',...
+% % %     'D:\Yarden\yarden matlab files\raw_data\gandalf left\2018June27\gan_2018June27_caleye.1',...
+% % %     'D:\Yarden\yarden matlab files\raw_data\gandalf left\2018May29\gan_2018_05_29_cal.1',...
+% % %     'D:\Yarden\yarden matlab files\raw_data\gandalf left\2018June13\gan_2018_06_13_cal.1',...
+% % %     'D:\Yarden\yarden matlab files\raw_data\gandalf left\2018June13\gan_2018_06_13_cal.1',...
+% % %     'D:\Yarden\yarden matlab files\raw_data\gandalf left\2018May23\gan_2018_05_23_cal.1',...
+% % %     'D:\Yarden\yarden matlab files\raw_data\gandalf left\2018May23\gan_2018_05_23_cal.1'};
+% % % 
+% % % condNums={[1,2,3,4,5,6,7],[1,2,3,4,5,6,7],[1,2,3,4,5,6,7],[1,2,3,4,5,6,7],[1,2,3,4,5,6,7],[1,2,3,4,5,6,7],[1,2,3,4,5,6,7],[1,2,3,4,5,6,7],[1,2,3,4,5,6,7],[1,2,3,4,5,6,7],[1,2,3,4,5,6,7]}; %different kinds of stimuli
+% % % condNums={[6],[6],[6],[6],[6],[6],[6],[6],[6],[6],[6]}; %blank only
+
+%%% constant variables
+msAmpThreshold=1;
+pixelsMask=0;
+sizeOfSample=30; %number of frames in each session
+shiftTimeOfMs=0; %if we want to add 50 ms for the detection time of ms
+
+%%%%%end of definitions
+
+%make mats with all data for alligning
+fullSyncMat={{'session name'},{'condsXn'},{'cortex trial'},{'RSD file name'}, {'mat file name'}, {'trial num'}};
+fullMsMat={{'session name'},{'condsXn'},{'cortex trial'}, {'trial num'},{'ms'},{'onset frame'},{'offset frame'}};
+
+for session_id=1:size(session_names,2)
+    session_name=char(session_names(session_id));
+    cortexFileRoot=char(cortexFileRoots(session_id));
+    calibrationFileRoot=char(calibrationFileRoots(session_id));
+    conds = cell2mat(condNums(session_id));
+    
+    for cond_num=conds;
+        %make syncMat for VSD and cortex for all sessions
+        vsdfileRoot=['D:\Yarden\yarden matlab files\analysis_data\preprocessed_VSDdata' filesep session_name];
+        synchronyFilePath=['D:\Yarden\yarden matlab files\analysis_data\cortex-cam synched lists' filesep session_name '.xlsx'];
+        syncMat=yr_autoSyncCortex2MatFiles(synchronyFilePath,vsdfileRoot,cond_num);
+        sessionName2cat = cell(size(syncMat,1)-1,1);
+        sessionName2cat(:) = {session_name};
+        cond2cat=cell(size(syncMat,1)-1,1);
+        cond2cat(:)={cond_num};
+        syncMat2add=[sessionName2cat cond2cat syncMat(2:end,:)];
+        fullSyncMat = [fullSyncMat; syncMat2add];
+        
+        %make mat for alligning data of all MS in the data
+        msMat = createMsMat(cortexFileRoot,calibrationFileRoot,msAmpThreshold,syncMat,cond_num);
+        sessionName2cat2 = cell(size(msMat,1)-1,1);
+        sessionName2cat2(:) = {session_name};
+        cond2cat2=cell(size(msMat,1)-1,1);
+        cond2cat2(:)={cond_num};
+        msMat2add=[sessionName2cat2 cond2cat2 msMat(2:end,:)];
+        fullMsMat = [fullMsMat; msMat2add];       
+    end
+
+end
+
+msClass_id=1;
+noMsClass_id=1;
+session_name=" ";
+cond_num=0;
+for fullMsMatRow = 2:size(fullMsMat,1)
+    onsetFrame = cell2mat(fullMsMat(fullMsMatRow,6));
+    offsetFrame = cell2mat(fullMsMat(fullMsMatRow,7));
+    if ~(string(session_name)==string(cell2mat(fullMsMat(fullMsMatRow,1)))&&cond_num==cell2mat(fullMsMat(fullMsMatRow,2))) %load data only if it's new session and new condition
+        cond_num=cell2mat(fullMsMat(fullMsMatRow,2));
+        condName=['condsXn' int2str(cond_num)];
+        session_name=cell2mat(fullMsMat(fullMsMatRow,1));
+        vsdfileRoot=['D:\Yarden\yarden matlab files\analysis_data\preprocessed_VSDdata' filesep session_name];
+        cd(vsdfileRoot);
+        
+        eval(['load condsXn ',condName,';']);
+        eval(['condVSD_data=',condName,';']);
+        load pix_to_remove;
+        condVSD_data_no_BV=condVSD_data;
+        condVSD_data_no_BV(find(chamberpix),:,:)=nan;
+        condVSD_data_no_BV(find(bloodpix),:,:)=nan;
+        condVSD_data_no_BV=condVSD_data_no_BV(:,[2:end],:);
+    end
+    
+    try
+        trial_num=cell2mat(fullMsMat(fullMsMatRow,4));
+    catch
+        disp(['problem with row ' num2str(fullMsMatRow) ' in fullMsMat']);
+        continue
+    end
+    
+    msOrNot=cell2mat(fullMsMat(fullMsMatRow,5));
+    if (msOrNot==1) %add to ms data
+        if onsetFrame<sizeOfSample %so that we'll always have full sequence with full MS
+            maxForAlignment=onsetFrame-1; 
+        else
+            maxForAlignment=onsetFrame-(sizeOfSample-1);
+        end
+        alignement=ceil(rand().*maxForAlignment);
+        if (shiftTimeOfMs)
+            frames=[(onsetFrame-alignement+5):((sizeOfSample-1)+onsetFrame-alignement+5)];
+        else
+            frames=[(onsetFrame-alignement):((sizeOfSample-1)+onsetFrame-alignement)];
+        end
+        if (pixelsMask)
+            dataWithMs(:,:,msClass_id)=yr_DeepNetworksProject_dataByGaussians(condVSD_data(:,frames,trial_num),offsetFrame-onsetFrame+alignement,chamberpix,bloodpix,msOrNot);
+        else
+            dataWithMs(:,:,msClass_id)=condVSD_data_no_BV(:,frames,trial_num);
+        end
+        msClass_id=msClass_id+1;
+    else %add to notMs data only if we have at least 30 frames to add
+        if (offsetFrame-onsetFrame)>sizeOfSample
+            if (offsetFrame-onsetFrame)>(sizeOfSample.*2)
+                onsetFrame2=onsetFrame+round((offsetFrame-onsetFrame)/2);
+                offsetFrame2=onsetFrame2-1;
+                
+                rangeForAlignement=offsetFrame2-onsetFrame-sizeOfSample;
+                alignement=ceil(rand().*rangeForAlignement);
+                frames=[(onsetFrame+alignement):((sizeOfSample-1)+onsetFrame+alignement)];
+                if (pixelsMask)
+                    dataNoMs(:,:,noMsClass_id)=yr_DeepNetworksProject_dataByGaussians(condVSD_data(:,frames,trial_num),frames(1),chamberpix,bloodpix,msOrNot);
+                else
+                    dataNoMs(:,:,noMsClass_id)=condVSD_data_no_BV(:,frames,trial_num);
+                end
+                noMsClass_id=noMsClass_id+1;
+                
+                rangeForAlignement=offsetFrame-onsetFrame2-sizeOfSample;
+                alignement=ceil(rand().*rangeForAlignement);
+                frames=[(onsetFrame2+alignement):((sizeOfSample-1)+onsetFrame2+alignement)];
+                if (pixelsMask)
+                    dataNoMs(:,:,noMsClass_id)=yr_DeepNetworksProject_dataByGaussians(condVSD_data(:,frames,trial_num),frames(1),chamberpix,bloodpix,msOrNot);
+                else
+                    dataNoMs(:,:,noMsClass_id)=condVSD_data_no_BV(:,frames,trial_num);
+                end
+                noMsClass_id=noMsClass_id+1;
+            else
+               rangeForAlignement=offsetFrame-onsetFrame-sizeOfSample;
+               alignement=ceil(rand().*rangeForAlignement);
+               frames=[(onsetFrame+alignement):((sizeOfSample-1)+onsetFrame+alignement)];
+               if (pixelsMask)
+                    dataNoMs(:,:,noMsClass_id)=yr_DeepNetworksProject_dataByGaussians(condVSD_data(:,frames,trial_num),frames(1),chamberpix,bloodpix,msOrNot);
+                else
+                    dataNoMs(:,:,noMsClass_id)=condVSD_data_no_BV(:,frames,trial_num);
+               end
+               noMsClass_id=noMsClass_id+1; 
+            end
+        end
+    end
+end
+%make mats of VSD data - one which has 30 frames in which there is EM and
+%one in which there is not. all images will be without BV and chamber
+%limits.
+
+a=1;
+
+function msMats=createMsMat(cortexFileRoot,calibrationFileRoot,msAmpThreshold,syncMat,cond_num)
+[MSduringVSD,mainTimeMat]=yr_msDuringVSD(cortexFileRoot,calibrationFileRoot,msAmpThreshold,0);
+msMats={{'cortex trial'},{['condsXn' num2str(cond_num) ' trial num']},{'ms'},{'onset frame'},{'offset frame'}};
+relCortexTrials=cell2mat(syncMat(2:end,1));
+msRow=2;
+lastTrialNum=0;
+prevMsOffset=0;
+for cortexRelId=1:size(relCortexTrials)
+    cortex_id=relCortexTrials(cortexRelId);
+    trialMs=MSduringVSD{cortex_id};
+    vsdOnset=cell2mat(mainTimeMat(4,cortex_id+1));
+    if cortexRelId>1&&prevMsOffset<130 %complete last ms mat to 130
+        msMats(msRow,1)=msMats(msRow-1,1);
+        msMats(msRow,2)=msMats(msRow-1,2);
+        msMats(msRow,3)={0};
+        msMats(msRow,4)={prevMsOffset+1};
+        msMats(msRow,5)={130};
+        msRow=msRow+1;
+    end
+    
+    if isempty(trialMs)|| (floor((trialMs(1,1)-vsdOnset)./10)>130) %add empty trials and trials with first MS only after 130 frames
+        msMats(msRow,1)=syncMat(cortexRelId+1,1);
+        msMats(msRow,2)=syncMat(cortexRelId+1,4);
+        msMats(msRow,3)={0};
+        msMats(msRow,4)={1};
+        msMats(msRow,5)={130};
+        msRow=msRow+1;
+        prevMsOffset=130;
+    else
+        for ms_id=1:size(trialMs,1) %add trials with ms
+            msOnsetFrame=floor((trialMs(ms_id,1)-vsdOnset)./10);
+            msOffsetFrame=floor((trialMs(ms_id,2)-vsdOnset)./10);
+            if msOffsetFrame<130 && msOnsetFrame>2   %for alignment vector we start at frame 2 of VSD data
+                if ~(cell2mat(syncMat(cortexRelId+1,4))==lastTrialNum) %first ms in the trial
+                    if msOnsetFrame<50
+                        msMats(msRow,1)=syncMat(cortexRelId+1,1);
+                        msMats(msRow,2)=syncMat(cortexRelId+1,4);
+                        msMats(msRow,3)={1};
+                        msMats(msRow,4)={msOnsetFrame};
+                        msMats(msRow,5)={msOffsetFrame};
+                        msRow=msRow+1;
+                    else
+                        msMats(msRow,1)=syncMat(cortexRelId+1,1);
+                        msMats(msRow,2)=syncMat(cortexRelId+1,4);
+                        msMats(msRow,3)={0};
+                        msMats(msRow,4)={1};
+                        msMats(msRow,5)={msOnsetFrame-1};
+                        msRow=msRow+1;
+
+                        msMats(msRow,1)=syncMat(cortexRelId+1,1);
+                        msMats(msRow,2)=syncMat(cortexRelId+1,4);
+                        msMats(msRow,3)={1};
+                        msMats(msRow,4)={msOnsetFrame};
+                        msMats(msRow,5)={msOffsetFrame};
+                        msRow=msRow+1;
+                    end
+                else
+                    if ms_id==size(trialMs,1)
+                        msMats(msRow,1)=syncMat(cortexRelId+1,1);
+                        msMats(msRow,2)=syncMat(cortexRelId+1,4);
+                        msMats(msRow,3)={0};
+                        msMats(msRow,4)={prevMsOffset+1};
+                        msMats(msRow,5)={msOnsetFrame-1};
+                        msRow=msRow+1;
+
+                        msMats(msRow,1)=syncMat(cortexRelId+1,1);
+                        msMats(msRow,2)=syncMat(cortexRelId+1,4);
+                        msMats(msRow,3)={1};
+                        msMats(msRow,4)={msOnsetFrame};
+                        msMats(msRow,5)={msOffsetFrame};
+                        msRow=msRow+1;
+                        
+                        if msOffsetFrame<129
+                            msMats(msRow,1)=syncMat(cortexRelId+1,1);
+                            msMats(msRow,2)=syncMat(cortexRelId+1,4);
+                            msMats(msRow,3)={0};
+                            msMats(msRow,4)={msOffsetFrame+1};
+                            msMats(msRow,5)={130};
+                            msRow=msRow+1;
+                        end
+                    else
+                        msMats(msRow,1)=syncMat(cortexRelId+1,1);
+                        msMats(msRow,2)=syncMat(cortexRelId+1,4);
+                        msMats(msRow,3)={0};
+                        msMats(msRow,4)={prevMsOffset+1};
+                        msMats(msRow,5)={msOnsetFrame-1};
+                        msRow=msRow+1;
+
+                        msMats(msRow,1)=syncMat(cortexRelId+1,1);
+                        msMats(msRow,2)=syncMat(cortexRelId+1,4);
+                        msMats(msRow,3)={1};
+                        msMats(msRow,4)={msOnsetFrame};
+                        msMats(msRow,5)={msOffsetFrame};
+                        msRow=msRow+1;
+                    end
+                end
+                prevMsOffset=msOffsetFrame;
+                lastTrialNum=cell2mat(syncMat(cortexRelId+1,4));
+            end
+        end
+    end
+end
