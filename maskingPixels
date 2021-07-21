@@ -1,0 +1,175 @@
+function gaussianData=yr_DeepNetworksProject_dataByGaussians(vsdTrialData,refFrame,chamberpix,bloodpix,msOrNot)
+
+
+%%%%%%%%%%%%%%%%%%%%%think how to find gaussian if no MS (at intersaccadic
+%%%%%%%%%%%%%%%%%%%%%times)
+
+%refFrame- ms offset if its ms and frame ... if not...
+%we'll look for pixels in a single trial that their behaviour is relevant
+%for ms- site A will show increase when stimulus will be shown and decrease
+%when MS lands in a new place, and site B will show increase only after MS
+%lands. VSD responses will be around 3-10 frames after the MS (engbert algorythm might miss some artifacts after ms). 
+
+
+num_pixels=size(vsdTrialData,1);
+
+%manipulations to the VSD data (preprocessing):
+%a. low pass spatial filter
+%b. deleting chamber and BV
+%c. time smoothing for each pixel using moving average of window of 5
+
+spFilterVSDTrialData=mfilt2(vsdTrialData,100,100,2,'lm')-1;
+spFilterVSDTrialData_noBV=spFilterVSDTrialData;
+spFilterVSDTrialData_noBV(find(chamberpix),:,:)=nan;
+spFilterVSDTrialData_noBV(find(bloodpix),:,:)=nan;
+smoothedVSDtrial=nan(size(spFilterVSDTrialData_noBV));
+for pixel_id=1:num_pixels
+    pixelTimeVec=spFilterVSDTrialData_noBV(pixel_id,:);
+    if ~isnan(nanmin(pixelTimeVec))
+        smoothedPixelVec=smooth(pixelTimeVec,5);
+        smoothedVSDtrial(pixel_id,:)=smoothedPixelVec;
+    end
+end
+
+
+%%%%if ms is in, we'll look for two sites
+if (msOrNot)
+    %find pixels that could be site A- decrease in activity when MS lands in a
+    %new place and site B- increase only after MS lands
+    siteAoptionalPixels=[];
+    siteBoptionalPixels=[];
+    for pixel_id=1:num_pixels
+        pixelTimeVec=smoothedVSDtrial(pixel_id,:);
+        if ~isnan(nanmin(pixelTimeVec))
+            if refFrame>5
+                if refFrame<size(vsdTrialData,2)-10
+                    croppedPixelTimeVec4SiteA=pixelTimeVec([(refFrame-5):(refFrame+5)]);
+                    croppedPixelTimeVec4SiteB=pixelTimeVec([refFrame:refFrame+10]);
+                else
+                    croppedPixelTimeVec4SiteA=pixelTimeVec([(refFrame-5):end]);
+                    croppedPixelTimeVec4SiteB=pixelTimeVec([refFrame:end]);
+                end
+            else
+                croppedPixelTimeVec4SiteA=pixelTimeVec([1:(refFrame+5)]);
+                croppedPixelTimeVec4SiteB=pixelTimeVec([refFrame:refFrame+10]);
+            end
+
+            %%%site A conditions for pixel%%%
+            diffOfPixelSiteA=diff(croppedPixelTimeVec4SiteA);
+            framesOfDecrease=find(diffOfPixelSiteA<0);
+            if size(framesOfDecrease,2)>=7
+                checkDecreaseVec=croppedPixelTimeVec4SiteA(framesOfDecrease);
+                diff2Check=diff(checkDecreaseVec);
+                framesOfDecrease2=find(diff2Check<0);
+                if size(framesOfDecrease2,2)>=5
+                    siteAoptionalPixels=[siteAoptionalPixels pixel_id];
+                end
+            end
+            
+            diffOfPixelSiteB=diff(croppedPixelTimeVec4SiteB);
+            framesOfIncrease=find(diffOfPixelSiteB>0);
+            if size(framesOfIncrease,2)>=7
+                checkIncreaseVec=croppedPixelTimeVec4SiteB(framesOfIncrease);
+                diff2Check=diff(checkIncreaseVec);
+                framesOfIncrease2=find(diff2Check>0);
+                if size(framesOfIncrease2,2)>=5
+                    siteBoptionalPixels=[siteBoptionalPixels pixel_id];
+                end
+            end
+        end
+    end
+    
+    siteAoptionalPixels=removeOutliers(siteAoptionalPixels,num_pixels);
+    siteBoptionalPixels=removeOutliers(siteBoptionalPixels,num_pixels);
+    [sharedPixelsBetweenSites,Ids2deleteFromSiteA]=intersect(siteAoptionalPixels,siteBoptionalPixels);
+    if ~isempty(Ids2deleteFromSiteA)
+        siteAoptionalPixels(Ids2deleteFromSiteA)=[];
+    end
+
+    gaussianData=zeros(size(vsdTrialData));
+
+    if ~isempty(siteAoptionalPixels)
+        gaussianData(siteAoptionalPixels,[1:refFrame])=1;
+    end
+        
+    if ~isempty(siteBoptionalPixels)
+        gaussianData(siteBoptionalPixels,[refFrame+1:end])=1;
+    end
+     %     figure; mimg(gaussianData,100,100,0,1); colormap(mapgeog);
+     %     figure; mimg(nanmean(gaussianData,2),100,100,0,1); colormap(mapgeog);
+ else
+    %find pixels that could be stimulus Site by finding pixels with
+    %luminance above 70% of max at each frame and using only pixels that
+    %are shared between frames. gaussian will be the same in every frame.
+    
+    sharedPixelsBetweenFrames=[];
+    if refFrame<40
+        frame2start=40-refFrame;
+    else
+        frame2start=1;
+    end
+    
+    if frame2start<=size(vsdTrialData,2)
+        for frame_id=frame2start:size(vsdTrialData,2)
+            highestLuminancePixels=find(smoothedVSDtrial(:,frame_id)>(0.7.*max(smoothedVSDtrial(:,frame_id))));
+            if frame_id==frame2start
+                sharedPixelsBetweenFrames=highestLuminancePixels;
+            else
+                sharedPixelsBetweenFrames=intersect(sharedPixelsBetweenFrames,highestLuminancePixels);
+            end
+        end
+        sharedPixelsBetweenFrames=removeOutliers(sharedPixelsBetweenFrames,num_pixels);
+    end
+    
+    gaussianData=zeros(size(vsdTrialData));
+    if ~isempty(sharedPixelsBetweenFrames)
+        gaussianData(sharedPixelsBetweenFrames)=1;
+    end
+    %     figure; mimg(gaussianData,100,100,0,1); colormap(mapgeog);
+    %     figure; mimg(nanmean(gaussianData,2),100,100,0,1); colormap(mapgeog);
+end
+
+a=1;
+    
+end
+
+function pixelsNoOutliers=removeOutliers(pixels,fullImgSize)
+    num_pixels=size(pixels,1);
+    [pixelsRows,pixelsCols] = ind2sub([sqrt(fullImgSize) sqrt(fullImgSize)],pixels);
+    distanceMat=zeros(num_pixels);
+    for pixel_id=1:num_pixels
+        pixel_row=pixelsRows(pixel_id);
+        pixel_col=pixelsCols(pixel_id);
+        pixel1=[pixel_row,pixel_col];
+        for pixel_id2=1:num_pixels
+            pixel_row2=pixelsRows(pixel_id2);
+            pixel_col2=pixelsCols(pixel_id2);
+            pixel2=[pixel_row2,pixel_col2];
+            distanceMat(pixel_id,pixel_id2)=norm(pixel1-pixel2);
+        end
+    end
+    
+    meanDist=nanmean(nanmean(distanceMat));
+    stdDist=std(reshape(distanceMat,[num_pixels.^2,1]));
+    pixelsId2remove=[];
+    for pixel_id3=1:num_pixels
+        biggerOutliers=find(distanceMat(pixel_id3,:)>(meanDist+stdDist));
+        lowerOutliers=find(distanceMat(pixel_id3,:)>(meanDist+stdDist));
+        if (size(biggerOutliers,1)+size(lowerOutliers,1))>num_pixels
+            pixelsId2remove=[pixelsId2remove pixel_id3];
+        end
+    end
+    
+    pixelsNoOutliers=pixels;
+    pixelsNoOutliers(pixelsId2remove)=[];
+end
+
+function pixels=pixelsFromEllipse(center, semiaxis1, semiaxis2, rotation,num_pixels)
+npts = 100;
+t = linspace(0, 2*pi, npts);
+Q = [cos(rotation), -sin(rotation); sin(rotation) cos(rotation)];
+% Ellipse points
+X = ceil(Q * [semiaxis1 * cos(t); semiaxis2 * sin(t)] + repmat(center, 1, npts));
+pixels=sub2ind([sqrt(num_pixels) sqrt(num_pixels)],X(1,:),X(2,:));
+
+end
