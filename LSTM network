@@ -1,0 +1,266 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Thu Jul  8 08:53:58 2021
+
+@author: Yarden
+"""
+#this code is based on the ideas for lstm by python-engineer: https://github.com/python-engineer/pytorch-examples/blob/master/rnn-lstm-gru/main.py
+
+import torch
+import torch.nn as nn
+import torchvision
+import torchvision.transforms as transforms
+from os.path import dirname, join as pjoin
+import scipy.io as sio
+import random
+import numpy as np
+import matplotlib.pyplot as plt
+import mat73
+
+
+###hyperparameters for data###
+typeOfData='50_frames_data_differentStimuli' #type of data
+fractOfDataNoMS=0.7#how much data to take for training with no MS
+fractOfDataMS=0.4 #how much data to take for training with MS
+
+
+# Hyper-parameters for learning
+#input_size = # 100X100
+input_size = 10000
+sequence_length = 50
+num_layers = 2
+hidden_size = 10
+num_classes = 2
+num_epochs = 100
+batch_size = 10
+learning_rate = 0.001
+regularizer=0.01
+#if we have a problem with overfitting:
+probOfDropout=0.2 #recommended not more than 0.5
+#momentumVal=0.5 #recommended between 0.5-0.9 for SGD
+
+
+# Device configuration
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    
+###dataset
+class MSDataset(torch.utils.data.Dataset):
+  'Characterizes a dataset for PyTorch'
+  def __init__(self, data_WithMS, data_NoMS):
+        'Initialization'
+        self.labels=[];
+        self.data=np.empty([data_WithMS.shape[0],data_WithMS.shape[1],data_WithMS.shape[2]+data_NoMS.shape[2]]);
+        withMsIdx=0;
+        noMsIdx=0;
+        for i in range(data_WithMS.shape[2]+data_NoMS.shape[2]):
+            chooseData2add=random.sample(range(2),1)
+            chooseData2add=chooseData2add[0]
+            if chooseData2add==0:
+                if noMsIdx<data_NoMS.shape[2]:
+                    self.data[:,:,i]=data_NoMS[:,:,noMsIdx]
+                    self.labels.append(0)
+                    noMsIdx=noMsIdx+1
+                else:
+                    self.data[:,:,i]=data_WithMS[:,:,withMsIdx]
+                    self.labels.append(1)
+                    withMsIdx=withMsIdx+1
+            else:
+                if withMsIdx<data_WithMS.shape[2]:
+                    self.data[:,:,i]=data_WithMS[:,:,withMsIdx]
+                    self.labels.append(1)
+                    withMsIdx=withMsIdx+1
+                else:
+                    self.data[:,:,i]=data_NoMS[:,:,noMsIdx]
+                    self.labels.append(0)
+                    noMsIdx=noMsIdx+1
+
+  def __len__(self):
+        'Denotes the total number of samples'
+        return len(self.labels)
+
+  def __getitem__(self, index):
+        'Generates one sample of data'
+        # Select sample
+        sample = self.data[:,:,index]
+        label = self.labels[index]
+        sampleDict={'image':sample,'label':label}
+
+        return sample,label
+
+
+data_dir = pjoin('D:\Yarden','yarden matlab files', 'analysis_data', 'deepNetworksProjectData', typeOfData)
+mat_dataNoMS = pjoin(data_dir, 'dataNoMs.mat')
+#dataNoMSMat = sio.loadmat(mat_dataNoMS)
+dataNoMSMat = mat73.loadmat(mat_dataNoMS)
+dataNoMS=dataNoMSMat['dataNoMs']
+dataNoMS=np.array(dataNoMS)
+#dataNoMS[np.isnan(dataNoMS)] = np.random.randn(len(dataNoMS[np.isnan(dataNoMS)]))*10
+dataNoMS = np.nan_to_num(dataNoMS,nan=10)
+#dataNoMS[np.isnan(dataNoMS)] = np.random.random_integers(90,110,len(dataNoMS[np.isnan(dataNoMS)]))
+#for sample in range(dataNoMS.shape[2]):
+    #dataNoMS[:,:,sample]=np.nan_to_num(dataNoMS[:,:,sample],nan=np.random.rand(1)*10) #change nan to the same random number
+
+mat_dataWithMS = pjoin(data_dir, 'dataWithMs.mat')
+#dataWithMSMat = sio.loadmat(mat_dataWithMS)
+dataWithMSMat = mat73.loadmat(mat_dataWithMS)
+dataWithMS=dataWithMSMat['dataWithMs']
+dataWithMS=np.array(dataWithMS)
+#dataWithMS[np.isnan(dataWithMS)] = np.random.randn(len(dataWithMS[np.isnan(dataWithMS)]))*10
+dataWithMS = np.nan_to_num(dataWithMS,nan=10)
+#dataWithMS[np.isnan(dataWithMS)] = np.random.random_integers(90,110,len(dataWithMS[np.isnan(dataWithMS)]))
+#for sample in range(dataWithMS.shape[2]):
+ #   dataWithMS[:,:,sample]=np.nan_to_num(dataWithMS[:,:,sample],nan=np.random.rand(1)*10)
+randomIdWithMS4Training=random.sample(range(dataWithMS.shape[2]),round(dataWithMS.shape[2]*fractOfDataMS))
+
+randomIdNoMS4Training=random.sample(range(dataNoMS.shape[2]),round(dataNoMS.shape[2]*fractOfDataNoMS))
+
+dataWithMS4Training=dataWithMS[:,:,randomIdWithMS4Training]
+dataNoMS4Training=dataNoMS[:,:,randomIdNoMS4Training]
+
+dataWithMS4Test=dataWithMS
+dataNoMS4Test=dataNoMS
+dataWithMS4Test=np.delete(dataWithMS,randomIdWithMS4Training,2)
+dataNoMS4Test=np.delete(dataNoMS,randomIdNoMS4Training,2)
+
+#delete from training sets overlaps between training and test datasets
+dataWithMS4TrainingIds2Delete=[]
+for data_id in range(dataWithMS4Training.shape[2]):
+    data2Compare=dataWithMS4Training[:,:,data_id]
+    for data_id2 in range (dataWithMS4Test.shape[2]):
+        data2Compare2=dataWithMS4Test[:,:,data_id2]
+        if np.all(data2Compare==data2Compare2):
+            dataWithMS4TrainingIds2Delete.append(data_id)
+np.delete(dataWithMS4Training,dataWithMS4TrainingIds2Delete,2)
+
+dataNoMS4TrainingIds2Delete=[]
+for data_id in range(dataNoMS4Training.shape[2]):
+    data2Compare=dataNoMS4Training[:,:,data_id]
+    for data_id2 in range (dataNoMS4Test.shape[2]):
+        data2Compare2=dataNoMS4Test[:,:,data_id2]
+        if np.all(data2Compare==data2Compare2):
+            dataNoMS4TrainingIds2Delete.append(data_id)
+np.delete(dataNoMS4Training,data_id,2)
+print('number of Samples to train- without ms: '+str(dataNoMS4Training.shape[2])+' with ms: '+str(dataWithMS4Training.shape[2]))
+print('number of Samples to test- without ms: '+str(dataNoMS4Test.shape[2])+' with ms: '+str(dataWithMS4Test.shape[2]))
+
+
+dataSet4Training=MSDataset(dataWithMS4Training,dataNoMS4Training)
+dataSet4Test=MSDataset(dataWithMS4Test,dataNoMS4Test)
+
+# Data loader
+train_loader = torch.utils.data.DataLoader(dataset=dataSet4Training, 
+                                           batch_size=batch_size, 
+                                           shuffle=True)
+
+test_loader = torch.utils.data.DataLoader(dataset=dataSet4Test, 
+                                          batch_size=batch_size, 
+                                          shuffle=False)
+
+
+# Fully connected neural network with hidden layers
+class RNN(nn.Module):
+    def __init__(self, input_size, hidden_size, num_layers, num_classes):
+        super(RNN, self).__init__()
+        self.num_layers = num_layers
+        self.hidden_size = hidden_size
+        self.lstm = nn.LSTM(input_size, hidden_size, num_layers, batch_first=True,dropout=probOfDropout)
+        #self.lstm = nn.LSTM(input_size, hidden_size, num_layers, batch_first=True)
+        self.fc = nn.Linear(hidden_size, num_classes)
+    
+        
+    def forward(self, x):
+        # Set initial hidden states and cell states
+        #can use either random numbers from normal distribution or zeros
+        h0 = torch.randn(self.num_layers, x.size(0), self.hidden_size).to(device)*10
+        c0 = torch.randn(self.num_layers, x.size(0), self.hidden_size).to(device)*10
+        #h0 = torch.zeros(self.num_layers, x.size(0), self.hidden_size).to(device)
+        #c0 = torch.zeros(self.num_layers, x.size(0), self.hidden_size).to(device)
+                
+        # Forward propagate
+        out, _ = self.lstm(x, (h0,c0))  
+        # out: tensor of shape (batch_size, seq_length, hidden_size)
+        
+        # Decode the hidden state of the last time step
+        out = out[:, -1, :]
+         
+        out = self.fc(out)
+        return out
+
+model = RNN(input_size, hidden_size, num_layers, num_classes).to(device)
+
+# Loss and optimizer
+criterion = nn.CrossEntropyLoss()
+#optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate)  
+optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate,weight_decay=regularizer)  
+#optimizer = torch.optim.SGD(model.parameters(), lr=learning_rate,momentum=momentumVal,weight_decay=regularizer)
+#optimizer = torch.optim.SGD(model.parameters(), lr=learning_rate,momentum=momentumVal)
+
+# Train the model
+n_total_steps = len(train_loader)
+loss_vals=  []
+acc_vals=[]
+for epoch in range(num_epochs):
+    epoch_loss= []
+    for i, (samples, labels) in enumerate(train_loader):  
+        samples = samples.reshape(-1, sequence_length, input_size).to(device)
+        labels=labels.to(device)
+        
+        # Forward pass
+        outputs = model(samples.float())
+        loss = criterion(outputs, labels)
+        
+        # Backward and optimize
+        optimizer.zero_grad()
+        loss.backward()
+        optimizer.step()
+        
+        epoch_loss.append(loss.item())
+        
+        if (i+1) % n_total_steps == 0 and epoch % 10 ==0:
+            # Test the model
+            n_correct = 0
+            n_samples = 0
+            for samples, labels in test_loader:
+                samples = samples.reshape(-1, sequence_length, input_size).to(device)
+                labels = labels.to(device)
+                outputs = model(samples.float())
+                # max returns (value ,index)
+                _, predicted = torch.max(outputs.data, 1)
+                n_samples += labels.size(0)
+                n_correct += (predicted == labels).sum().item()
+
+            acc = 100.0 * n_correct / n_samples
+            acc_vals.append(acc)
+            print(f'For epoch {epoch+1}/{num_epochs}, accuracy of the network on test matrices: {acc} %')
+            print (f'Epoch [{epoch+1}/{num_epochs}], Step [{i+1}/{n_total_steps}], Loss: {loss.item()}')
+    loss_vals.append(sum(epoch_loss)/len(epoch_loss))
+figure, axes = plt.subplots(nrows=1, ncols=2)
+plt.subplot(1, 2, 1)
+plt.plot(np.linspace(1, num_epochs, num_epochs).astype(int), loss_vals)
+plt.title("loss as function of epochs")
+plt.xlabel('num of epochs')
+plt.ylabel('loss')
+plt.subplot(1, 2, 2)
+plt.plot(np.linspace(1, num_epochs, num_epochs//10).astype(int), acc_vals)
+plt.title("accuracy as function of epochs")
+plt.xlabel('num of epochs')
+plt.ylabel('accuracy (%)')
+figure.tight_layout()
+plt.show()
+
+# Test the model
+# In test phase, we don't need to compute gradients (for memory efficiency)
+with torch.no_grad():
+    n_correct = 0
+    n_samples = 0
+    for samples, labels in test_loader:
+        samples = samples.reshape(-1, sequence_length, input_size).to(device)
+        labels = labels.to(device)
+        outputs = model(samples.float())
+        # max returns (value ,index)
+        _, predicted = torch.max(outputs.data, 1)
+        n_samples += labels.size(0)
+        n_correct += (predicted == labels).sum().item()
+
+    acc = 100.0 * n_correct / n_samples
+    print(f'Accuracy of the network on test matrices: {acc} %')
